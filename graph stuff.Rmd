@@ -1,0 +1,42 @@
+---
+title: "final work"
+output: html_document
+---
+
+ggplot(data = JRN_386011_mesquite_root_tube_nutrients_data) + 
+  geom_point(method = lm, mapping = aes(x = NO3, y = SWC, color = SAMP_TYPE))
+  
+#stop
+ggplot(data = JRN_386011_mesquite_root_tube_nutrients_data) + 
+  geom_smooth( mapping = aes(x = N03, y = SWC, color = SAMP_TYPE))
+  
+#stop
+ggplot(data = JRN_394009_mesquite_canopypos_soil_N) + 
+  geom_smooth(method = lm, mapping = aes(x = CM, y = INORGN, color = DEPTH)) + geom_point(aes(x = CM, y = INORGN, color = DEPTH))
+
+
+#stop
+ggplot(data = JRN_394008_mesq_soil_analyses) + 
+  geom_point( mapping = aes(x = TKN, y = SWC, color = SITE))
+  
+  
+  
+###CORRELOGRAM###         
+         
+# Select the variables to make correlation plot and drop observations with missing values.
+Dataset_canopydistance <- select(JRN_394009_mesquite_canopypos_soil_N, SITE, DEPTH, CM, TKN, NH4, NO3, INORGN)
+
+# Correlation matrix calculated to include p-values 
+LCE_cor <- rcorr(as.matrix(LCE_cont), type="pearson")
+LCE_cor$r 
+LCE_cor$P 
+
+# Correlogram generated to only show circles with significant correlation values at p=0.05. P values imported from previously calculated matrix
+corrplot(LCE_cor$r, type = "upper", 
+         tl.col = "black", 
+         tl.srt = 45,
+         p.mat = LCE_cor$P, 
+         sig.level = 0.05,
+         addCoef.col = "black",
+         insig = "blank")
+  
