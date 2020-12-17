@@ -1,0 +1,82 @@
+```{r}
+
+#load all libraries
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+
+#read in dataframes
+canopy_pos <- read_csv("JRN_394009_mesquite_canopypos_soil_N.csv")
+root_tubes <- read_csv("JRN_386011_mesquite_root_tube_nutrients_data.csv")
+soil_analyses <- read_csv("JRN_394008_mesq_soil_analyses.csv")
+
+#filter out a habitat not being used to enable use of all 3 datasets
+soil_analyses <- filter(soil_analyses, SITE == "L" | SITE == "G" | SITE == "D" | SITE == "P")
+canopy_pos <- filter(canopy_pos, SITE == "L" | SITE == "G" | SITE == "D" | SITE == "P")
+  
+#two-way ANOVA for SWC by habitat type and sample type
+anova_SWC <- aov(SWC ~ SITE*SAMP_TYPE, data=root_tubes)
+summary(anova_SWC)
+  
+#swc bloxplot by site
+p <- ggplot(data = root_tubes, aes(fill = SITE, x = fct_rev(fct_reorder(SITE, SWC)), y = SWC)) + 
+  geom_boxplot()
+  p + labs(x = "Habitat Type", y = "Gravimetric soil water content (%)") +
+  scale_fill_brewer(palette="Paired", name = "Habitat Type", labels = c("Dune", "Grassland", "Playa")) 
+  
+#grouped barplot of TKN x site x distance from mesquite tree, reordered from highest to lowest tkn averages by site
+ggplot(canopy_pos, aes(fill=reorder(DIST, -TKN), y=TKN, x=reorder(SITE, -TKN))) + 
+    geom_bar(position="dodge", stat="identity") +
+    labs(x = "Playa                    Grassland             Larrea (no Mesquite)                 Dune", y = "Total Kjeldahl Nitrogen (g/kg)") +
+    scale_fill_brewer(palette="Paired", name = "Measurement Location", labels = c("Tree Base", "Mid Canopy", "Canopy Edge", "Interspace")) 
+    
+#stacked barplot of TKN x site x depth
+ggplot(canopy_pos, aes(fill=reorder(DEPTH, -TKN), y=TKN, x=reorder(SITE, -TKN))) + 
+    geom_bar(stat="identity") +
+    labs(x = "Playa                                 Grassland                     Larrea (no Mesquite)                 Dune", y = "Total Kjeldahl Nitrogen (g/kg)") +
+    scale_fill_brewer(palette="Paired", name = "Depth (cm)")
+
+#twp-way anova testing interactions of habitat, relative distance, and depth on TKN        
+anova_TKN <- aov(TKN ~ SITE*DIST*DEPTH, data = canopy_pos)
+summary(anova_TKN)  
+
+#####anova tests comparing nitrogen/cm distance and nitrogen/depth at each site#############
+
+#make new dataset of just playa values and run one-way anova on cm distance from tree base
+playa <- filter(canopy_pos, SITE == "P")
+anova_playa <- aov(TKN ~ CM, data = playa)
+summary(anova_playa)
+
+#use playa-only dataset to run one-way anova on depth and TKN
+anova_P <- aov(TKN ~ DEPTH, data = playa)
+summary(anova_P)  
+
+#make new dataset of just grassland values and run one-way anova on cm distance from tree base
+grassland <- filter(canopy_pos, SITE == "G")
+anova_grassland <- aov(TKN ~ CM, data = grassland)
+summary(anova_grassland)
+
+#use grassland-only dataset to run one-way anova on depth and TKN
+anova_G <- aov(TKN ~ DEPTH, data = grassland)
+summary(anova_G)  
+
+#make new dataset of just dune values and run one-way anova on cm distance from tree base
+dune <- filter(canopy_pos, SITE == "D")
+anova_dune <- aov(TKN ~ CM, data = dune)
+summary(anova_dune)
+
+#use dune-only dataset to run one-way anova on depth and TKN
+anova_D <- aov(TKN ~ DEPTH, data = dune)
+summary(anova_D)  
+
+#make new dataset of just larrea values and run one-way anova on cm distance from tree base
+larrea <- filter(canopy_pos, SITE == "L")
+anova_larrea <- aov(TKN ~ CM, data = larrea)
+summary(anova_larrea)
+
+#use larrea-only dataset to run one-way anova on depth and TKN
+anova_L <- aov(TKN ~ DEPTH, data = larrea)
+summary(anova_L)      
+    
+```
+  
