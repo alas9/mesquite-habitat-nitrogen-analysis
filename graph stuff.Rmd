@@ -2,41 +2,94 @@
 title: "final work"
 output: html_document
 ---
+#root tube bar graph comparisons
+ggplot(data = soil_analyses, aes(fill = reorder(SITE, -SWC), x = reorder(SITE, -SWC) y = SWC)) + 
+  geom_bar(stat = "identity")
+  
+#swc by site  
+soil_analyses$SWC = with(soil_analyses, reorder(median, SWC, SITE))
+p <- ggplot(data = soil_analyses, aes(fill = SITE, x = SITE, y = SWC)) + 
+  geom_bar(stat = "identity")  
+  p + labs(x = "Habitat Type", y = "Gravimetric soil water content (%)") +
+  scale_fill_brewer(palette="Paired", name = "Habitat Type", labels = c("Dune", "Grassland", "Wash (arroyo)", "Playa")) 
+  
+# TKN x SWC 
+ggplot(data = soil_analyses) +
+  geom_smooth(mapping = aes(x = TKN, y = SWC))
 
-ggplot(data = JRN_386011_mesquite_root_tube_nutrients_data) + 
-  geom_point(method = lm, mapping = aes(x = NO3, y = SWC, color = SAMP_TYPE))
-  
-#stop
-ggplot(data = JRN_386011_mesquite_root_tube_nutrients_data) + 
-  geom_smooth( mapping = aes(x = N03, y = SWC, color = SAMP_TYPE))
-  
-#stop
-ggplot(data = JRN_394009_mesquite_canopypos_soil_N) + 
-  geom_smooth(method = lm, mapping = aes(x = CM, y = INORGN, color = DEPTH)) + geom_point(aes(x = CM, y = INORGN, color = DEPTH))
+#canopy pos bar graph comparisons
 
+ggplot(canopy_pos, aes(fill=reorder(DIST, -TKN), y=TKN, x=reorder(SITE, -TKN))) + 
+    geom_bar(position="dodge", stat="identity") +
+    labs(x = "Playa                   Wash (arroyo)                   Grassland                Larrea (no Mesquite)                 Dune", y = "Total Kjeldahl Nitrogen (g/kg)") +
+    scale_fill_brewer(palette="Paired", name = "Measurement Location", labels = c("Tree Base", "Mid Canopy", "Canopy Edge", "Interspace")) 
+  
+#depth one 
+ggplot(canopy_pos, aes(fill=reorder(DEPTH, -TKN), y=TKN, x=reorder(SITE, -TKN))) + 
+    geom_bar(stat="identity") +
+    labs(x = "Playa                   Wash (arroyo)                   Grassland                Larrea (no Mesquite)                 Dune", y = "Total Kjeldahl Nitrogen (g/kg)") +
+    scale_fill_brewer(palette="Paired", name = "Depth (cm)")
+    
+#old average of above graph
+    
+p <- ggplot(data = canopy_pos, aes(x = reorder(DIST, -TKN), y = TKN)) + 
+  geom_bar(stat = "identity")  
+  p + labs(x = "Distance from Tree Base", y = "Total Kjeldahl Nitrogen(g/kg)") +
+  theme_bw()
 
-#stop
-ggplot(data = JRN_394008_mesq_soil_analyses) + 
-  geom_point( mapping = aes(x = TKN, y = SWC, color = SITE))
+#root tube water and nitrogen correlations by site
+ggplot(data = root_tubes) +
+  geom_smooth(method = lm, mapping = aes(x = NO3, y = SWC, color = SITE))
   
+#canopy pos
+ggplot(data = canopy_pos) + 
+  geom_smooth(method= lm, mapping = aes(x = log(CM), y = log(TKN), color = SITE))
+
   
-  
-###CORRELOGRAM###         
+###CORRELOGRAM###     ****************************************************************************  
+
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(Hmisc)
+library(corrplot)
+library(factoextra)
+
+canopy_pos <- read_csv("JRN_394009_mesquite_canopypos_soil_N.csv") %>%
+  mutate(logTKN = log(TKN))
+
+root_tubes <- read_csv("JRN_386011_mesquite_root_tube_nutrients_data.csv")
+
+soil_analyses <- read_csv("JRN_394008_mesq_soil_analyses.csv")
          
 # Select the variables to make correlation plot and drop observations with missing values.
-Dataset_canopydistance <- select(JRN_394009_mesquite_canopypos_soil_N, SITE, DEPTH, CM, TKN, NH4, NO3, INORGN)
+Dataset_canopydistance <- select(canopy_pos, DEPTH, CM, TKN, NH4, NO3, INORGN)
 
 # Correlation matrix calculated to include p-values 
-LCE_cor <- rcorr(as.matrix(LCE_cont), type="pearson")
-LCE_cor$r 
-LCE_cor$P 
+CanopyDistanceCorr <- rcorr(as.matrix(Dataset_canopydistance, type = "pearson"))
+CanopyDistanceCorr$r 
+CanopyDistanceCorr$P 
 
 # Correlogram generated to only show circles with significant correlation values at p=0.05. P values imported from previously calculated matrix
-corrplot(LCE_cor$r, type = "upper", 
+corrplot(CanopyDistanceCorr$r, type = "upper", 
          tl.col = "black", 
          tl.srt = 45,
-         p.mat = LCE_cor$P, 
+         p.mat = CanopyDistanceCorr$P, 
          sig.level = 0.05,
          addCoef.col = "black",
          insig = "blank")
+****************************************************************************************************************         
+         
+#ANOVA TEST OF SITE AND DISTANCE FROM TREE INTERACTIONS (CONC= SITE IS SIGNIFICANT N CHANGE, DISTANCE IS ALSO SIGNIFICANT, BUT THE TWO DON'T INTERACT)         
+anova_TKN <- aov(TKN ~ SITE*DIST*DEPTH, data = canopy_pos)
+summary(anova_TKN)  
+
+#site significantly explains swc, associated with swc by site chart
+anova_SWC <- aov(SWC ~ SITE, data=soil_analyses)
+summary(anova_SWC)
+#tukey for swc by site shows that only playa is significantly different from the others. try doing a linear regression analysis of 
+tukey_swc<-TukeyHSD(anova_SWC)
+tukey_swc
+
+  
   
